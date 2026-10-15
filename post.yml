@@ -1,0 +1,29 @@
+name: Auto Facebook Post
+
+on:
+  schedule:
+    # GitHub cron UTC te chole. Bangladesh (UTC+6) shomoy:
+    - cron: "0 3 * * *"   # shokal 9:00
+    - cron: "0 7 * * *"   # dupur 1:00
+    - cron: "0 11 * * *"  # bikal 5:00
+    - cron: "0 14 * * *"  # rat 8:00
+  workflow_dispatch: # hat e test korar jonno
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - run: python post.py
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
