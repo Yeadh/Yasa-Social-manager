@@ -55,3 +55,7 @@ SKIP_VERSES = set()
 # Poster e boro hole boro lekha chhoto hoye jay, tai onek lomba ayat bad jabe
 MAX_ARABIC_CHARS = 260
 MAX_BANGLA_CHARS = 330
+
+# Hadis database theke ashbe emon hadis bad dite chaile id likhun. Jemon: "d:ben-bukhari:123"
+SKIP_HADITHS = set()
+MAX_HADITH_CHARS = 300

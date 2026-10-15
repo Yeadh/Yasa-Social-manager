@@ -5,8 +5,8 @@ import sys
 import time
 import requests
 
-from content import (QURAN_REFS, SURAH_BN, HADITHS, SKIP_VERSES,
-                     MAX_ARABIC_CHARS, MAX_BANGLA_CHARS)
+from content import (QURAN_REFS, SURAH_BN, HADITHS, SKIP_VERSES, SKIP_HADITHS,
+                     MAX_ARABIC_CHARS, MAX_BANGLA_CHARS, MAX_HADITH_CHARS)
 from poster import bn, build_html, render_png
 
 FB_PAGE_ID = os.environ.get("FB_PAGE_ID", "")
@@ -26,6 +26,7 @@ def load_state() -> dict:
         st = {}
     st.setdefault("used", [])
     st.setdefault("next_global", 1)  # curated list sesh hole puro Quran er kromanushare
+    st.setdefault("hadith_next", {})  # hadis database e kon edition e kototuku porjonto dekha hoyeche
     return st
 
 
@@ -94,11 +95,74 @@ def quran_result(arabic, bangla, surah, ayah, name):
 
 
 # ---------- kon ta post hobe ----------
+HADITH_CDN = "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1"
+HADITH_BN_NAME = {"bukhari": "সহীহ বুখারী", "muslim": "সহীহ মুসলিম"}  # shudhu Sahihayn
+_hadith_cache = {}
+
+
+def bn_hadith_editions():
+    """Hadis database e Bangla edition ache kina dekhe. [(edition, collection)]"""
+    if "eds" in _hadith_cache:
+        return _hadith_cache["eds"]
+    eds = []
+    try:
+        data = requests.get(f"{HADITH_CDN}/editions.json", timeout=40).json()
+        for key in HADITH_BN_NAME:
+            for e in data.get(key, {}).get("collection", []):
+                if str(e.get("name", "")).startswith("ben-") or e.get("language") == "Bengali":
+                    eds.append((e["name"], key))
+                    break
+    except Exception as e:
+        print("Hadis database edition list paoa jay nai:", str(e)[:150])
+    if not eds:
+        print("Database e Bangla hadis paoa jay nai, shudhu content.py er hadis cholbe")
+    _hadith_cache["eds"] = eds
+    return eds
+
+
+def load_edition(name):
+    if name not in _hadith_cache:
+        r = requests.get(f"{HADITH_CDN}/editions/{name}.json", timeout=90)
+        r.raise_for_status()
+        _hadith_cache[name] = r.json().get("hadiths", [])
+    return _hadith_cache[name]
+
+
+def hadith_result(text, collection, number, edition):
+    ref = f"{HADITH_BN_NAME[collection]} {bn(number)}"
+    caption = f"{text}\n\n📖 {ref}\n\n#হাদীস #হাদীসের_বাণী #ইসলাম"
+    return "hadith", "", text, ref, caption, f"d:{edition}:{number}"
+
+
 def next_hadith(st):
+    # 1) age content.py er bachai kora hadis
     for i, (bangla, ref) in enumerate(HADITHS):
         if f"h:{i}" not in st["used"]:
             caption = f"{bangla}\n\n📖 {ref}\n\n#হাদীস #হাদীসের_বাণী #ইসলাম"
             return "hadith", "", bangla, ref, caption, f"h:{i}"
+    # 2) tarpor hadis database theke (Bangla thakle), Bukhari ar Muslim palagome
+    eds = bn_hadith_editions()
+    used = set(st["used"])
+    for k in range(len(eds)):
+        edition, collection = eds[(len(st["used"]) + k) % len(eds)]
+        try:
+            hadiths = load_edition(edition)
+        except Exception as e:
+            print(f"{edition} load hoy nai:", str(e)[:150])
+            continue
+        idx = st["hadith_next"].get(edition, 0)
+        while idx < len(hadiths):
+            h = hadiths[idx]
+            idx += 1
+            text = str(h.get("text", "")).strip()
+            number = h.get("hadithnumber")
+            hid = f"d:{edition}:{number}"
+            if (not number or hid in used or hid in SKIP_HADITHS
+                    or not (25 <= len(text) <= MAX_HADITH_CHARS)):
+                continue
+            st["hadith_next"][edition] = idx
+            return hadith_result(text, collection, number, edition)
+        st["hadith_next"][edition] = idx
     return None
 
 
