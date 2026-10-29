@@ -59,9 +59,10 @@
   "d:ben-bukhari:11",
   "q:2:16",
   "q:2:17",
-  "d:ben-muslim:105"
+  "d:ben-muslim:105",
+  "q:2:18"
  ],
- "next_global": 25,
+ "next_global": 26,
  "hadith_next": {
   "ben-muslim": 105,
   "ben-bukhari": 11
