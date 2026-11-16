@@ -127,11 +127,12 @@
   "q:2:65",
   "d:ben-bukhari:75",
   "q:2:66",
-  "q:2:67"
+  "q:2:67",
+  "d:ben-bukhari:77"
  ],
  "next_global": 75,
  "hadith_next": {
   "ben-muslim": 175,
-  "ben-bukhari": 75
+  "ben-bukhari": 77
  }
 }
